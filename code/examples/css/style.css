@@ -1,0 +1,13 @@
+.logo-image {
+    height: 140px; 
+    display: block; 
+    margin: 0 auto; 
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%) scale(4); 
+    opacity: 0.3; 
+    z-index: 1; 
+    pointer-events: none; 
+    user-select: none; 
+}
