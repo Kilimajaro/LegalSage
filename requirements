@@ -1,0 +1,17 @@
+gradio
+pydantic
+aioboto3
+ollama
+python-docx
+openai
+tenacity
+PyPFD2
+transformers
+pytesseract
+torch
+tiktoken
+nano_vectordb
+nest_asyncio
+SpeechRecognition
+dashscope
+soundfile
