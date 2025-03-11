@@ -70,5 +70,5 @@ def insert_all_files_in_folder(folder_path):
 
 
 # 指定你的文件夹路径
-folder_path = r"D:\Important\Others\24CAIL&LAIC&法创杯\JEC-QA\reference_book\民法"
+folder_path = r"C:\Users\86186\Desktop\法小询v2.0\code\民法"
 insert_all_files_in_folder(folder_path)

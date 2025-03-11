@@ -7,8 +7,9 @@ import numpy as np
 from typing import Optional
 import asyncio
 import nest_asyncio
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, UploadFile, File
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware  
 
 # Apply nest_asyncio to solve event loop issues
 nest_asyncio.apply()
@@ -28,7 +29,7 @@ async def llm_model_func(
     prompt, system_prompt=None, history_messages=[], **kwargs
 ) -> str:
     return await openai_complete_if_cache(
-        "qwen-max-latest",
+        "qwen-turbo",
         prompt,
         system_prompt=system_prompt,
         history_messages=history_messages,
@@ -78,6 +79,10 @@ class Response(BaseModel):
     data: Optional[str] = None
     message: Optional[str] = None
 
+
+class InsertRequest(BaseModel):
+    text: str
+
 class HistoryManager:
     def __init__(self):
         self.history = ""
@@ -90,8 +95,8 @@ class HistoryManager:
         # 将本轮查询和回答添加到历史中
         self.history += f"{query} {result} "
         self.dialogue_count += 1
-        if self.dialogue_count % 11 == 0:
-            # 每十一轮对话后，生成历史摘要
+        if self.dialogue_count % 3 == 0:
+            # 每三轮对话后，生成历史摘要
             self.history = await self.summarize_history(self.history)
         return self.history
 
@@ -149,26 +154,35 @@ async def insert_endpoint(request: InsertRequest):
 async def health_check():
     return {"status": "healthy"}
 
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins, or specify specific domains
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
+@app.post("/insert_file", response_model=Response)
+async def insert_file(file: UploadFile = File(...)):
+    try:
+        file_content = await file.read()
+        # Read file content
+        try:
+            content = file_content.decode("utf-8")
+        except UnicodeDecodeError:
+            # If UTF-8 decoding fails, try other encodings
+            content = file_content.decode("gbk")
+        # Insert file content
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: rag.insert(content))
 
-# @app.post("/insert_file")
-# async def insert_file(file: UploadFile = File(...)):
-#     try:
-#         # 读取文件内容
-#         content = await file.read()
-#         try:
-#             # 尝试 UTF-8 解码
-#             content = content.decode('utf-8')
-#         except UnicodeDecodeError:
-#             # 如果 UTF-8 解码失败，尝试其他编码
-#             content = content.decode('gbk')
-
-#         # 使用 /insert 端点插入文件内容
-#         return await insert_endpoint(InsertRequest(text=content))
-#     except UnicodeDecodeError:
-#         return JSONResponse(content={"status": "error", "message": "Failed to decode file content"})
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))
+        return Response(
+            status="success",
+            message=f"File content from {file.filename} inserted successfully",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

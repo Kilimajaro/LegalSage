@@ -4,7 +4,7 @@ import re
 from typing import Union
 from collections import Counter, defaultdict
 import warnings
-from .utils import (
+from .utils import (     #gai
     logger,
     clean_str,
     compute_mdhash_id,
@@ -16,14 +16,14 @@ from .utils import (
     split_string_by_multi_markers,
     truncate_list_by_token_size,
 )
-from .base import (
+from .base import (    #gai
     BaseGraphStorage,
     BaseKVStorage,
     BaseVectorStorage,
     TextChunkSchema,
     QueryParam,
 )
-from .prompt import GRAPH_FIELD_SEP, PROMPTS
+from .prompt import GRAPH_FIELD_SEP, PROMPTS   #gai
 
 
 def chunking_by_token_size(
@@ -432,6 +432,9 @@ async def local_query(
             text_chunks_db,
             query_param,
         )
+        save_keywords_to_file(keywords, query,query_param)
+        
+
     if query_param.only_need_context:
         return context
     if context is None:
@@ -454,10 +457,27 @@ async def local_query(
             .replace("</system>", "")
             .strip()
         )
-
+    
     return response
 
+def save_keywords_to_file(keywords: str, query: str, query_param: QueryParam):
+    # 获取当前序号（静态变量）
+    if not hasattr(save_keywords_to_file, "current_index"):
+        save_keywords_to_file.current_index = 1  # 初始化序号
+    else:
+        save_keywords_to_file.current_index += 1  # 序号递增
 
+    # 构造文件名：query+序号.txt
+    file_name = f"query_{save_keywords_to_file.current_index}.txt"
+
+    # 使用 utf-8 编码打开文件
+    with open(file_name, "w", encoding="utf-8") as file:  # 使用 "w" 模式覆盖文件
+        # 写入序号、查询内容和关键词
+        file.write(f"QueryNumber: {save_keywords_to_file.current_index}\n")  # 写入序号
+        file.write(f"Query: {query}\n")  # 写入查询内容
+        file.write(f"Keywords: {keywords}\n")  # 写入关键词
+        file.write("-" * 40 + "\n")  # 添加分隔符
+        
 async def _build_local_query_context(
     query,
     knowledge_graph_inst: BaseGraphStorage,
@@ -682,6 +702,7 @@ async def global_query(
             text_chunks_db,
             query_param,
         )
+        save_keywords_to_file(keywords, query,query_param)####################################################################
 
     if query_param.only_need_context:
         return context
@@ -918,6 +939,9 @@ async def hybrid_query(
             print(f"JSON parsing error: {e}")
             return PROMPTS["fail_response"]
 
+    if hl_keywords or ll_keywords:
+        combined_keywords = f"High-Level Keywords: {hl_keywords}\nLow-Level Keywords: {ll_keywords}"###############################################################
+        save_keywords_to_file(combined_keywords,query, query_param)
     if ll_keywords:
         low_level_context = await _build_local_query_context(
             ll_keywords,
@@ -951,7 +975,7 @@ async def hybrid_query(
     )
     response = await use_model_func(
         query,
-        system_prompt=sys_prompt,
+        system_prompt=sys_prompt+'注意：在回答的最后按以下格式输出关键词：**低层次关键词**:<$提取到的低层次关键词>**高层次关键词**:<$提取到的高层次关键词>',
     )
     if len(response) > len(sys_prompt):
         response = (
@@ -967,7 +991,7 @@ async def hybrid_query(
 
 
 def combine_contexts(high_level_context, low_level_context):
-    # Function to extract entities, relationships, and sources from context strings
+    # Function to extract entities, relationships, and sources from context strings#############################################
 
     def extract_sections(context):
         entities_match = re.search(
