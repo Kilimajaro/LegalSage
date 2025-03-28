@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/781acc1e-e591-4f8c-98da-511c95814221)# LegalSage
+# LegalSage
 法小询项目托管
 1.右键代码中的law_vue_backend，选择在终端中打开，执行  pip install -r .\requirements.txt  安装依赖库，若安装中出错则重新执行安装直至成功
 2.运行law_vue_backend中的api.py文件，出现
